@@ -84,7 +84,7 @@ func listenForCalls(conn *websocket.Conn, channel Channel) {
 		}
 
 		// Decode the message and dispatch it to an appropriate route handler
-		call := &Call{}
+		call := &Request{}
 		if err := json.Unmarshal(message, &call); err != nil {
 			log.Printf("Error decoding operation call '%s', Error: %s \n", string(message), err.Error())
 		} else {
@@ -95,6 +95,7 @@ func listenForCalls(conn *websocket.Conn, channel Channel) {
 
 func redirectEventsToOutput(channel Channel) {
 	for event := range channel.Events {
+
 		channel.output <- event
 	}
 }
@@ -108,19 +109,19 @@ func listenForOutputs(conn *websocket.Conn, channel Channel) {
 	}
 }
 
-func dispatchCall(call *Call, channel Channel) {
+func dispatchCall(call *Request, channel Channel) {
 	transmitter := &Transmitter{Channel: channel, id: call.Id}
 
-	opRoute, ok := routes.get(call.Operation)
+	opRoute, ok := routes.get(call.Method)
 	if !ok {
-		m := fmt.Sprintf("No route for the operation '%s'", call.Operation)
+		m := fmt.Sprintf("No route for the operation '%s'", call.Method)
 		transmitter.SendError(NewError(errors.New(m), NoSuchRouteErrorCode))
 		return
 	}
 
 	decodedBody, err := opRoute.DecoderFunc(call.RawBody)
 	if err != nil {
-		m := fmt.Sprintf("Error decoding body for the operation '%s'. Error: '%s'", call.Operation, err.Error())
+		m := fmt.Sprintf("Error decoding body for the operation '%s'. Error: '%s'", call.Method, err.Error())
 		transmitter.SendError(NewError(errors.New(m), InvalidOperationBodyJsonErrorCode))
 		return
 	}

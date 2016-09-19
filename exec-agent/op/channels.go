@@ -17,6 +17,7 @@ var (
 // Published when websocket connection is established
 // and channel is ready for interaction
 type ChannelConnected struct {
+	EventBody
 	ChannelId string `json:"channel"`
 	Text      string `json:"text"`
 }

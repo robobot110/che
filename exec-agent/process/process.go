@@ -281,11 +281,6 @@ func (mp *MachineProcess) AddSubscriber(subscriber *Subscriber) error {
 	}
 	mp.subs = append(mp.subs, subscriber)
 
-	// if process is alive subscriber must receive 'Subscribed event'
-	if mp.Alive {
-		subscriber.Channel <- newSubscribedEvent(mp.Pid, subscriber.Mask)
-	}
-
 	return nil
 }
 
@@ -410,12 +405,4 @@ func newOutputEvent(pid uint64, kind string, line string, time time.Time) *op.Ev
 		Text:             line,
 	}
 	return op.NewEvent(kind, body, time)
-}
-
-func newSubscribedEvent(pid uint64, mask uint64) *op.Event {
-	subEvent := &ProcessSubscribedEventBody{
-		ProcessEventBody: ProcessEventBody{Pid: pid},
-		EventTypes:       typesFromMask(mask),
-	}
-	return op.NewEventNow(SubscribedEventType, subEvent)
 }

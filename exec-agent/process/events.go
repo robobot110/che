@@ -1,14 +1,16 @@
 package process
 
+import "github.com/eclipse/che/exec-agent/op"
+
 const (
 	ProcessStartedEventType = "process_started"
 	ProcessDiedEventType    = "process_died"
-	StdoutEventType         = "stdout"
-	StderrEventType         = "stderr"
-	SubscribedEventType     = "subscribed"
+	StdoutEventType         = "process_stdout"
+	StderrEventType         = "process_stderr"
 )
 
 type ProcessEventBody struct {
+	op.EventBody
 	Pid uint64 `json:"pid"`
 }
 
@@ -22,9 +24,4 @@ type ProcessStatusEventBody struct {
 type ProcessOutputEventBody struct {
 	ProcessEventBody
 	Text string `json:"text"`
-}
-
-type ProcessSubscribedEventBody struct {
-	ProcessEventBody
-	EventTypes string `json:"eventTypes"`
 }

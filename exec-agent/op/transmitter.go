@@ -13,7 +13,7 @@ type Transmitter struct {
 
 // Wraps the given message with an 'op.Result' and sends it to the client.
 func (t *Transmitter) Send(message interface{}) {
-	t.Channel.output <- &Result{
+	t.Channel.output <- &Response{
 		Id:   t.id,
 		Body: message,
 	}
@@ -21,7 +21,7 @@ func (t *Transmitter) Send(message interface{}) {
 
 // Wraps the given error with an 'op.Result' and sends it to the client.
 func (t *Transmitter) SendError(err Error) {
-	t.Channel.output <- &Result{
+	t.Channel.output <- &Response{
 		Id:    t.id,
 		Error: &err,
 	}

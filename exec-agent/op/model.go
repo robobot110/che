@@ -1,3 +1,34 @@
+// Provides a lightweight implementation of jsonrpc2.0 protocol.
+// The original jsonrpc2.0 specification - http://www.jsonrpc.org/specification
+//
+// The implementations does not fully implement the protocol
+// and introduces a few modifications to its terminology in
+// term of exec-agent transport needs.
+//
+// From the specification:
+// The Client is defined as the origin of Request objects and the handler of Response objects.
+// The Server is defined as the origin of Response objects and the handler of Request objects.
+//
+// Exec-agent serves as both, server and client as it receives
+// Responses and sends Notifications in the same time.
+//
+// Request.
+// It's a message from the physical websocket connection client to the exec-agent server.
+// Request(in it's origin form) is considered is considered to be unidirectional.
+// WS Client =---> WS Server.
+//
+// Response.
+// It's a message from the the exec-agent server to a websocket client,
+// indicates the result of the operation execution requested by certain request.
+// Response doesn't exist without request. The response is considered to be unidirectional.
+// WS Client <---= WS Server
+//
+// Event.
+// Is a message from the exec-agent server to a websocket client, the analogue
+// from the specification is Notification, which is defined as a request
+// which doesn't need any response, that's also true for events.
+// Events may happen periodically and don't need to be indicated by request.
+// WS Client <---X WS Server
 package op
 
 import (
@@ -8,13 +39,16 @@ import (
 // Describes named operation which is called
 // on the websocket client's side and performed
 // on the servers's side, if appropriate Route exists.
-type Call struct {
+type Request struct {
 
-	// The operation name which should be proceeded by this call
+	// Version of this request e.g. '2.0'.
+	Version string `json:"jsonrpc"`
+
+	// The method name which should be proceeded by this call
 	// usually dot separated resource and action e.g. 'process.start'.
-	Operation string `json:"operation"`
+	Method string `json:"method"`
 
-	// The unique identifier of this operation call.
+	// The unique identifier of this operation request.
 	// If a client needs to identify the result of the operation execution,
 	// the id should be passed by the client, then it is guaranteed
 	// that the client will receive the result frame with the same id.
@@ -27,58 +61,70 @@ type Call struct {
 	// identified by itself.
 	Id interface{} `json:"id"`
 
-	// Call related data, parameters which are needed for operation execution.
-	RawBody json.RawMessage `json:"body"`
-}
-
-// A message from the server to the client,
-// which may notify client about any activity that the client is interested in.
-// The difference from the 'op.Result' is that the event may happen periodically,
-// before or even after some operation calls, while the 'op.Result' is more like
-// result of the operation call execution, which is sent to the client immediately
-// after the operation execution is done.
-type Event struct {
-
-	// A type of this operation event, must be always set.
-	// The type must be generally unique.
-	EventType string `json:"type"`
-
-	// The time corresponding to the event occurrence, must be always set.
-	Time time.Time `json:"time"`
-
-	// Event related data.
-	Body interface{} `json:"body"`
+	// Request data, parameters which are needed for operation execution.
+	RawBody json.RawMessage `json:"params"`
 }
 
 // A message from the server to the client,
 // which represents the result of the certain operation execution.
 // The result is sent to the client only once per operation.
-type Result struct {
+type Response struct {
 
 	// The operation call identifier, will be set only
 	// if the operation contains it. See 'op.Call.Id'
 	Id interface{} `json:"id"`
 
 	// The actual result data, the operation execution result.
-	Body interface{} `json:"body"`
+	Body interface{} `json:"result,omitempty"`
 
 	// Body and Error are mutual exclusive.
 	// Present only if the operation execution fails due to an error.
-	Error *Error `json:"error"`
+	Error *Error `json:"error,omitempty"`
 }
 
-func NewEventNow(eType string, Body interface{}) *Event {
+// A message from the server to the client,
+// which may notify client about any activity that the client is interested in.
+// The difference from the 'op.Response' is that the event may happen periodically,
+// before or even after some operation calls, while the 'op.Response' is more like
+// result of the operation call execution, which is sent to the client immediately
+// after the operation execution is done.
+type Event struct {
+
+	// A type of this operation event, must be always set.
+	// The type must be generally unique.
+	EventType string
+
+	// Event related data.
+	Body Periodical
+}
+
+// Event has to be periodical
+type Periodical interface {
+	Time() time.Time
+}
+
+// Holds a value of time.
+type EventBody struct {
+	time time.Time
+}
+
+// Implements Periodical interface.
+func (th *EventBody) Time() time.Time {
+	return th.time
+}
+
+func NewEventNow(eType string, body Periodical) *Event {
+	body.(EventBody) {}
 	return &Event{
 		EventType: eType,
-		Time:      time.Now(),
-		Body:      Body,
+		Body:      body,
 	}
 }
 
-func NewEvent(eType string, Body interface{}, time time.Time) *Event {
+func NewEvent(eType string, body Periodical, time time.Time) *Event {
 	return &Event{
 		EventType: eType,
 		Time:      time,
-		Body:      Body,
+		Body:      body,
 	}
 }
