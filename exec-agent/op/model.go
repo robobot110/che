@@ -100,7 +100,7 @@ type Event struct {
 
 // Event has to be periodical
 type Periodical interface {
-	Time() time.Time
+	SetTime(time time.Time)
 }
 
 // Holds a value of time.
@@ -109,12 +109,12 @@ type EventBody struct {
 }
 
 // Implements Periodical interface.
-func (th *EventBody) Time() time.Time {
-	return th.time
+func (th *EventBody) SetTime(t time.Time) {
+	th.time = t
 }
 
 func NewEventNow(eType string, body Periodical) *Event {
-	body.(EventBody) {}
+	body.SetTime(time.Now())
 	return &Event{
 		EventType: eType,
 		Body:      body,
@@ -122,9 +122,9 @@ func NewEventNow(eType string, body Periodical) *Event {
 }
 
 func NewEvent(eType string, body Periodical, time time.Time) *Event {
+	body.SetTime(time)
 	return &Event{
 		EventType: eType,
-		Time:      time,
 		Body:      body,
 	}
 }

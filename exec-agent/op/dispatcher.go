@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/eclipse/che/exec-agent/auth"
 	"github.com/gorilla/websocket"
 	"log"
 	"net/http"
 	"strconv"
 	"sync/atomic"
 	"time"
-	"github.com/eclipse/che/exec-agent/auth"
 )
 
 var (
@@ -24,6 +24,12 @@ var (
 
 	prevChanId uint64 = 0
 )
+
+type notification struct {
+	Version string      `json:"jsonrpc"`
+	Method  string      `json:"method"`
+	Params  interface{} `json:"params"`
+}
 
 func registerChannel(w http.ResponseWriter, r *http.Request) error {
 	if auth.Enabled {
@@ -95,8 +101,11 @@ func listenForCalls(conn *websocket.Conn, channel Channel) {
 
 func redirectEventsToOutput(channel Channel) {
 	for event := range channel.Events {
-
-		channel.output <- event
+		channel.output <- &notification{
+			Version: "2.0",
+			Method:  event.EventType,
+			Params:  event.Body,
+		}
 	}
 }
 
