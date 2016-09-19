@@ -14,6 +14,7 @@ type Transmitter struct {
 // Wraps the given message with an 'op.Result' and sends it to the client.
 func (t *Transmitter) Send(message interface{}) {
 	t.Channel.output <- &Response{
+		Version: "2.0",
 		Id:   t.id,
 		Body: message,
 	}

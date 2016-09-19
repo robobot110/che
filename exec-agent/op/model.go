@@ -70,6 +70,9 @@ type Request struct {
 // The result is sent to the client only once per operation.
 type Response struct {
 
+	// Version of this response e.g. '2.0'.
+	Version string `json:"jsonrpc"`
+
 	// The operation call identifier, will be set only
 	// if the operation contains it. See 'op.Call.Id'
 	Id interface{} `json:"id"`
