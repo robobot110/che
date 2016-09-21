@@ -65,27 +65,23 @@ export class WorkspaceMachineConfigController {
    * Modifies agents list in order to add or remove 'ws-agent'
    */
   enableDev() {
-    this.$timeout.cancel(this.timeoutPromise);
-
     if (this.machineConfig.isDev === this.newDev) {
       return;
     }
 
-    this.timeoutPromise = this.$timeout(() => {
-      // remove ws-agent from machine which is the dev machine now
-      this.machinesList.forEach((machine) => {
-        if (this.environmentManager.isDev(machine)) {
-          this.environmentManager.setDev(machine, false);
-        }
-      });
+    // remove ws-agent from machine which is the dev machine now
+    this.machinesList.forEach((machine) => {
+      if (this.environmentManager.isDev(machine)) {
+        this.environmentManager.setDev(machine, false);
+      }
+    });
 
-      // add ws-agent to current machine agents list
-      this.environmentManager.setDev(this.machine, this.newDev);
+    // add ws-agent to current machine agents list
+    this.environmentManager.setDev(this.machine, this.newDev);
 
-      this.doUpdateConfig().then(() => {
-        this.init();
-      });
-    }, 1000);
+    this.doUpdateConfig().then(() => {
+      this.init();
+    });
   }
 
   /**

@@ -35,9 +35,12 @@ export class WorkspaceDetailsController {
 
     this.workspaceDetails = {};
     this.copyWorkspaceDetails = {};
+    this.machinesViewStatus = {};
     this.namespace = $route.current.params.namespace;
     this.workspaceName = $route.current.params.workspaceName;
     this.workspaceKey = this.namespace + ":" + this.workspaceName;
+    this.showSaveButton = false;
+    this.showApplyMessage = false;
 
     this.loading = true;
     this.timeoutPromise;
@@ -133,24 +136,29 @@ export class WorkspaceDetailsController {
   }
 
   /**
-   * Callback which is called in order to update workspace config
+   * Callback which is called after workspace config was changed
    * @returns {Promise}
    */
   updateWorkspaceConfig() {
-    if (angular.equals(this.copyWorkspaceDetails.config, this.workspaceDetails.config)) {
-      let defer = this.$q.defer();
-      defer.resolve();
-      return defer.promise;
+    this.showSaveButton = !angular.equals(this.copyWorkspaceDetails.config, this.workspaceDetails.config);
+
+    let status = this.getWorkspaceStatus();
+    if (status === 'STOPPED' || status === 'STOPPING') {
+      this.showApplyMessage = false;
+    } else {
+      this.showApplyMessage = true;
     }
 
-    return this.doUpdateWorkspace();
+    let defer = this.$q.defer();
+    defer.resolve();
+    return defer.promise;
   }
 
   /**
    * Updates workspace info.
    */
   doUpdateWorkspace() {
-    this.isLoading = true;
+    this.loading = true;
     delete this.copyWorkspaceDetails.links;
 
     let promise = this.cheWorkspace.updateWorkspace(this.workspaceId, this.copyWorkspaceDetails);
@@ -160,12 +168,57 @@ export class WorkspaceDetailsController {
       this.cheNotification.showInfo('Workspace updated.');
       return this.$location.path('/workspace/' + this.namespace + '/' + this.workspaceName);
     }, (error) => {
-      this.isLoading = false;
+      this.loading = false;
       this.cheNotification.showError(error.data.message !== null ? error.data.message : 'Update workspace failed.');
       this.$log.error(error);
     });
 
     return promise;
+  }
+
+  /**
+   * Updates workspace config and restarts workspace if it's necessary
+   */
+  applyConfigChanges() {
+    this.showSaveButton = false;
+    this.showApplyMessage = false;
+
+    let status = this.getWorkspaceStatus();
+
+    if (status !== 'RUNNING' && status !== 'STARTING') {
+      this.doUpdateWorkspace();
+      return;
+    }
+
+    let stoppedStatusPromise = this.cheWorkspace.fetchStatusChange(this.workspaceId, 'STOPPED');
+    if (status === 'RUNNING') {
+      this.stopWorkspace();
+      stoppedStatusPromise.then(() => {
+        return this.doUpdateWorkspace();
+      }).then(() => {
+        this.runWorkspace();
+      });
+      return;
+    }
+
+    let runningStatusPromise = this.cheWorkspace.fetchStatusChange(this.workspaceId, 'RUNNING');
+    if (status === 'STARTING') {
+      runningStatusPromise.then(() => {
+        this.stopWorkspace();
+        return stoppedStatusPromise;
+      }).then(() => {
+        return this.doUpdateWorkspace();
+      }).then(() => {
+        this.runWorkspace();
+      });
+    }
+  }
+
+  /**
+   * Cancels workspace config changes that weren't stored
+   */
+  cancelConfigChanges() {
+    this.updateWorkspaceData();
   }
 
   //Perform workspace deletion.

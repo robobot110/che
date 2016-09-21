@@ -1,4 +1,24 @@
-<che-toolbar che-title="{{workspaceDetailsCtrl.workspaceDetails.config.name}}"
+<che-toolbar ng-if="workspaceDetailsCtrl.showSaveButton"
+             che-title="{{workspaceDetailsCtrl.workspaceDetails.config.name}}"
+             che-title-icons-controller="workspaceDetailsCtrl"
+             che-breadcrumb-title="All workspaces"
+             che-breadcrumb-href="#/workspaces">
+  <div class="workspace-details-toolbar-button"
+       layout="row" layout-align="end center">
+    <div hide-xs hide-sm ng-if="workspaceDetailsCtrl.showApplyMessage">
+      <div class="workspace-details-support">&nbsp;</div>
+      <div class="workspace-details-message-container">
+        <span class="workspace-details-save-message">
+          Changes will be applied and workspace restarted
+        </span>
+      </div>
+    </div>
+    <che-button-save-flat che-button-title="Save" name="saveButton"
+                          ng-click="workspaceDetailsCtrl.applyConfigChanges()"></che-button-save-flat>
+  </div>
+</che-toolbar>
+<che-toolbar ng-if="!workspaceDetailsCtrl.showSaveButton"
+             che-title="{{workspaceDetailsCtrl.workspaceDetails.config.name}}"
              che-title-icons-controller="workspaceDetailsCtrl"
              che-button-name="Open"
              che-button-href="#/ide/{{workspaceDetailsCtrl.workspaceDetails.namespace}}/{{workspaceDetailsCtrl.workspaceDetails.config.name}}"
@@ -100,6 +120,7 @@
       <md-tab-body>
         <workspace-environments environment-name="environmentName"
                                 workspace-config="workspaceDetailsCtrl.copyWorkspaceDetails.config"
+                                machines-view-status="workspaceDetailsCtrl.machinesViewStatus"
                                 environment-on-change="workspaceDetailsCtrl.updateWorkspaceConfig()"></workspace-environments>
       </md-tab-body>
     </md-tab>
@@ -116,6 +137,16 @@
     </md-tab>
   </md-tabs>
 </md-content>
+
+<div class="workspace-details-overlay"
+     ng-if="workspaceDetailsCtrl.showSaveButton"
+     layout="row" layout-align="center center">
+  <div class="workspace-details-save-message" ng-if="workspaceDetailsCtrl.showApplyMessage">Changes will be applied and workspace restarted</div>
+  <che-button-save-flat che-button-title="Save" name="saveButton"
+                        ng-click="workspaceDetailsCtrl.applyConfigChanges()"></che-button-save-flat>
+  <che-button-cancel-flat che-button-title="Cancel" name="cancelButton"
+                          ng-click="workspaceDetailsCtrl.cancelConfigChanges()"></che-button-cancel-flat>
+</div>
 
 <md-content ng-show="workspaceDetailsCtrl.invalidWorkspace">
   {{workspaceDetailsCtrl.invalidWorkspace}}

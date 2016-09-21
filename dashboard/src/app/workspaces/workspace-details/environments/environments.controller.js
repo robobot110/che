@@ -22,7 +22,7 @@ export class WorkspaceEnvironmentsController {
    * Default constructor that is using resource injection
    * @ngInject for Dependency injection
    */
-  constructor($timeout, cheEnvironmentRegistry) {
+  constructor($scope, $timeout, cheEnvironmentRegistry) {
     this.cheEnvironmentRegistry = cheEnvironmentRegistry;
 
     this.editorOptions = {
@@ -37,9 +37,11 @@ export class WorkspaceEnvironmentsController {
       }
     };
 
-    this.machinesViewStatus = {};
-
-    this.init();
+    $scope.$watch(() => {
+      return this.workspaceConfig.environments;
+    }, () => {
+      this.init();
+    });
   }
 
   /**
@@ -55,6 +57,10 @@ export class WorkspaceEnvironmentsController {
     this.editorOptions.mode = this.environmentManager.editorMode;
 
     this.machines = this.environmentManager.getMachines(this.environment);
+
+    if (!this.machinesViewStatus[this.environmentName]) {
+      this.machinesViewStatus[this.environmentName] = {};
+    }
   }
 
   /**
@@ -82,6 +88,10 @@ export class WorkspaceEnvironmentsController {
     if (this.workspaceConfig.defaultEnv === this.environmentName) {
       this.workspaceConfig.defaultEnv = this.newEnvironmentName;
     }
+
+    this.machinesViewStatus[this.newEnvironmentName] = this.machinesViewStatus[this.environmentName];
+
+    this.environmentName = this.newEnvironmentName;
 
     this.doUpdateEnvironments();
   }
