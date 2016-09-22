@@ -13,6 +13,8 @@ package org.eclipse.che.api.core.util;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Helpers to manage system processes.
@@ -65,6 +67,55 @@ public final class ProcessUtil {
                 stdout.writeLine(line);
             }
         }
+    }
+
+    /**
+     * Start the process, writing the stdout and stderr to {@code outputConsumer} and terminate process by {@code timeout}.<br>
+     *
+     * @param commandLine
+     *         arguments of process command
+     * @param timeout
+     *         timeout for process. If process duration > {@code timeout} then kill process and throw {@link TimeoutException}.
+     * @param timeUnit
+     *         timeUnit of the {@code timeout}.
+     * @param outputConsumer
+     *         a consumer where stdout and stderr will be redirected
+     * @return the started process
+     * @throws InterruptedException
+     *         in case terminate process
+     * @throws IOException
+     *         in case I/O error
+     * @throws TimeoutException
+     *         if process gets more time then defined by {@code timeout}
+     */
+    public static Process execute(String[] commandLine, int timeout, TimeUnit timeUnit, LineConsumer outputConsumer)
+            throws TimeoutException, IOException, InterruptedException {
+        ProcessBuilder pb = new ProcessBuilder(commandLine).redirectErrorStream(true);
+
+        // process will be stopped after timeout
+        Watchdog watcher = new Watchdog(timeout, timeUnit);
+        Process process;
+        try {
+            process = pb.start();
+
+            final ValueHolder<Boolean> isTimeoutExceeded = new ValueHolder<>(false);
+            watcher.start(() -> {
+                isTimeoutExceeded.set(true);
+                ProcessUtil.kill(process);
+            });
+
+            // consume logs until process ends
+            process(process, outputConsumer);
+
+            process.waitFor();
+
+            if (isTimeoutExceeded.get()) {
+                throw new TimeoutException();
+            }
+        } finally {
+            watcher.stop();
+        }
+        return process;
     }
 
     /**

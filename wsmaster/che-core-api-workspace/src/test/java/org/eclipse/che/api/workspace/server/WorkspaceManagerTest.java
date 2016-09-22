@@ -99,21 +99,23 @@ public class WorkspaceManagerTest {
     private static final String NAMESPACE_2 = "userNS2";
 
     @Mock
-    private EventService                  eventService;
+    private EventService                   eventService;
     @Mock
-    private WorkspaceDao                  workspaceDao;
+    private WorkspaceDao                   workspaceDao;
     @Mock
-    private WorkspaceValidator            workspaceConfigValidator;
+    private WorkspaceValidator             workspaceConfigValidator;
     @Mock
-    private MachineProcessManager         client;
+    private MachineProcessManager          client;
     @Mock
-    private WorkspaceRuntimes             runtimes;
+    private WorkspaceRuntimes              runtimes;
     @Mock
-    private AccountManager                accountManager;
+    private AccountManager                 accountManager;
     @Mock
-    private SnapshotDao                   snapshotDao;
+    private SnapshotDao                    snapshotDao;
+    @Mock
+    private WorkspaceProjectStorageCleaner workspaceProjectStorageCleaner;
     @Captor
-    private ArgumentCaptor<WorkspaceImpl> workspaceCaptor;
+    private ArgumentCaptor<WorkspaceImpl>  workspaceCaptor;
 
     private WorkspaceManager workspaceManager;
 
@@ -125,7 +127,8 @@ public class WorkspaceManagerTest {
                                                     accountManager,
                                                     false,
                                                     false,
-                                                    snapshotDao));
+                                                    snapshotDao,
+                                                    workspaceProjectStorageCleaner));
         when(accountManager.getByName(NAMESPACE)).thenReturn(new AccountImpl("accountId", NAMESPACE, "test"));
         when(accountManager.getByName(NAMESPACE_2)).thenReturn(new AccountImpl("accountId2", NAMESPACE_2, "test"));
         when(workspaceDao.create(any(WorkspaceImpl.class))).thenAnswer(invocation -> invocation.getArguments()[0]);
@@ -582,6 +585,7 @@ public class WorkspaceManagerTest {
         workspaceManager.stopWorkspace(workspace.getId());
 
         verify(runtimes, timeout(2000)).stop(workspace.getId());
+        verify(workspaceProjectStorageCleaner, timeout(2000)).remove(workspace.getId());
         verify(workspaceDao).remove(workspace.getId());
     }
 
@@ -595,7 +599,8 @@ public class WorkspaceManagerTest {
 
         workspaceManager.startWorkspace(workspace.getId(), null, null);
 
-        verify(workspaceDao, timeout(2000)).remove(workspace.getId());
+        verify(workspaceProjectStorageCleaner, timeout(2000)).remove(workspace.getId());
+        verify(workspaceDao).remove(workspace.getId());
     }
 
     @Test
@@ -625,7 +630,8 @@ public class WorkspaceManagerTest {
                                                     accountManager,
                                                     true,
                                                     false,
-                                                    snapshotDao));
+                                                    snapshotDao,
+                                                    workspaceProjectStorageCleaner));
         final WorkspaceImpl workspace = workspaceManager.createWorkspace(createConfig(), NAMESPACE);
         when(workspaceDao.get(workspace.getId())).thenReturn(workspace);
         final RuntimeDescriptor descriptor = createDescriptor(workspace, RUNNING);
@@ -652,7 +658,8 @@ public class WorkspaceManagerTest {
                                                     accountManager,
                                                     false,
                                                     true,
-                                                    snapshotDao));
+                                                    snapshotDao,
+                                                    workspaceProjectStorageCleaner));
         final WorkspaceImpl workspace = workspaceManager.createWorkspace(createConfig(), NAMESPACE);
         when(workspaceDao.get(workspace.getId())).thenReturn(workspace);
         when(runtimes.get(any())).thenThrow(new NotFoundException(""));

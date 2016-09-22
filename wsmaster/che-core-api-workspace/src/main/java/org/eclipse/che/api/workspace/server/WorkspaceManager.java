@@ -88,14 +88,15 @@ public class WorkspaceManager {
     /** This attribute describes time when workspace was last update or started/stopped/recovered. */
     public static final String UPDATED_ATTRIBUTE_NAME = "updated";
 
-    private final WorkspaceDao      workspaceDao;
-    private final WorkspaceRuntimes runtimes;
-    private final EventService      eventService;
-    private final ExecutorService   executor;
-    private final AccountManager    accountManager;
-    private final boolean           defaultAutoSnapshot;
-    private final boolean           defaultAutoRestore;
-    private final SnapshotDao       snapshotDao;
+    private final WorkspaceDao                   workspaceDao;
+    private final WorkspaceRuntimes              runtimes;
+    private final EventService                   eventService;
+    private final ExecutorService                executor;
+    private final AccountManager                 accountManager;
+    private final boolean                        defaultAutoSnapshot;
+    private final boolean                        defaultAutoRestore;
+    private final SnapshotDao                    snapshotDao;
+    private final WorkspaceProjectStorageCleaner workspaceProjectStorageCleaner;
 
     @Inject
     public WorkspaceManager(WorkspaceDao workspaceDao,
@@ -104,7 +105,8 @@ public class WorkspaceManager {
                             AccountManager accountManager,
                             @Named("workspace.runtime.auto_snapshot") boolean defaultAutoSnapshot,
                             @Named("workspace.runtime.auto_restore") boolean defaultAutoRestore,
-                            SnapshotDao snapshotDao) {
+                            SnapshotDao snapshotDao,
+                            WorkspaceProjectStorageCleaner workspaceProjectStorageCleaner) {
         this.workspaceDao = workspaceDao;
         this.runtimes = workspaceRegistry;
         this.accountManager = accountManager;
@@ -112,6 +114,7 @@ public class WorkspaceManager {
         this.defaultAutoSnapshot = defaultAutoSnapshot;
         this.defaultAutoRestore = defaultAutoRestore;
         this.snapshotDao = snapshotDao;
+        this.workspaceProjectStorageCleaner = workspaceProjectStorageCleaner;
 
         executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat("WorkspaceManager-%d")
                                                                            .setDaemon(true)
@@ -326,6 +329,9 @@ public class WorkspaceManager {
         if (runtimes.hasRuntime(workspaceId)) {
             throw new ConflictException("The workspace '" + workspaceId + "' is currently running and cannot be removed.");
         }
+
+        workspaceProjectStorageCleaner.remove(workspaceId);
+
         workspaceDao.remove(workspaceId);
         eventService.publish(new WorkspaceRemovedEvent(workspaceId));
         LOG.info("Workspace '{}' removed by user '{}'", workspaceId, sessionUserNameOr("undefined"));
@@ -404,8 +410,10 @@ public class WorkspaceManager {
     /**
      * Starts machine in running workspace
      *
-     * @param machineConfig configuration of machine to start
-     * @param workspaceId id of workspace in which machine should be started
+     * @param machineConfig
+     *         configuration of machine to start
+     * @param workspaceId
+     *         id of workspace in which machine should be started
      * @throws NotFoundException
      *         if machine type from recipe is unsupported
      * @throws NotFoundException
@@ -516,7 +524,8 @@ public class WorkspaceManager {
      * Removes all snapshots of workspace machines.
      * Continues to remove snapshots even when removal of some of them fails.
      *
-     * @param workspaceId workspace id to remove machine snapshots
+     * @param workspaceId
+     *         workspace id to remove machine snapshots
      * @throws NotFoundException
      *         when workspace with given id doesn't exists
      * @throws ServerException
@@ -662,6 +671,7 @@ public class WorkspaceManager {
             try {
                 runtimes.stop(workspace.getId());
                 if (workspace.isTemporary()) {
+                    workspaceProjectStorageCleaner.remove(workspace.getId());
                     workspaceDao.remove(workspace.getId());
                 } else {
                     workspace.getAttributes().put(UPDATED_ATTRIBUTE_NAME, Long.toString(currentTimeMillis()));
