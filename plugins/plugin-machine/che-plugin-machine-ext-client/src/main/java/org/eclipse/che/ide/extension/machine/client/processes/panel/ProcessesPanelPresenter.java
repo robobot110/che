@@ -64,6 +64,7 @@ import org.eclipse.che.ide.ui.multisplitpanel.SubPanel;
 import org.eclipse.che.ide.util.loging.Log;
 import org.vectomatic.dom.svg.ui.SVGResource;
 
+import javax.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -261,7 +262,7 @@ public class ProcessesPanelPresenter extends BasePresenter implements ProcessesP
         final ProcessTreeNode selectedTreeNode = view.getSelectedTreeNode();
         final MachineEntity devMachine = appContext.getDevMachine();
         if (selectedTreeNode == null && devMachine != null) {
-            onAddTerminal(devMachine);
+            onAddTerminal(devMachine.getId());
             return;
         }
 
@@ -274,28 +275,28 @@ public class ProcessesPanelPresenter extends BasePresenter implements ProcessesP
 
         if (selectedTreeNode.getType() == MACHINE_NODE) {
             MachineEntity machine = (MachineEntity)selectedTreeNode.getData();
-            onAddTerminal(machine);
+            onAddTerminal(machine.getId());
             return;
         }
 
         ProcessTreeNode parent = selectedTreeNode.getParent();
         if (parent != null && parent.getType() == MACHINE_NODE) {
             MachineEntity machine = (MachineEntity)selectedTreeNode.getData();
-            onAddTerminal(machine);
+            onAddTerminal(machine.getId());
         }
     }
 
     /**
      * Adds new terminal to the processes panel
      *
-     * @param machine
-     *         machine in which the terminal will be added
+     * @param machineId
+     *         id of machine in which the terminal will be added
      */
     @Override
-    public void onAddTerminal(final MachineEntity machine) {
-        final String machineId = machine.getId();
+    public void onAddTerminal(final String machineId) {
+        final MachineEntity machine = getMachine(machineId);
         final ProcessTreeNode machineTreeNode = findProcessTreeNodeById(machineId);
-        if (machineTreeNode == null) {
+        if (machineTreeNode == null || machine == null) {
             notificationManager.notify(localizationConstant.failedToConnectTheTerminal(),
                                        localizationConstant.machineNotFound(machineId), FAIL, FLOAT_MODE);
             Log.error(getClass(), localizationConstant.machineNotFound(machineId));
@@ -636,6 +637,17 @@ public class ProcessesPanelPresenter extends BasePresenter implements ProcessesP
 
         }
         return machines;
+    }
+
+    @Nullable
+    private MachineEntity getMachine(@NotNull String machineId) {
+        List<MachineEntity> machines = getMachines(appContext.getWorkspace());
+        for (MachineEntity machine : machines) {
+            if (machineId.equals(machine.getId())) {
+                return machine;
+            }
+        }
+        return null;
     }
 
     @Override

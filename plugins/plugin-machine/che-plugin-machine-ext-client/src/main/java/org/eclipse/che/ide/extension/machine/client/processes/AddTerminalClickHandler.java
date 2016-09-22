@@ -10,8 +10,6 @@
  *******************************************************************************/
 package org.eclipse.che.ide.extension.machine.client.processes;
 
-import org.eclipse.che.ide.api.machine.MachineEntity;
-
 import javax.validation.constraints.NotNull;
 
 /**
@@ -24,8 +22,8 @@ public interface AddTerminalClickHandler {
     /**
      * Will be called when user clicks 'Add new terminal' button
      *
-     * @param machine
-     *         machine in which the terminal will be added
+     * @param machineId
+     *         id of machine in which the terminal will be added
      */
-    void onAddTerminalClick(@NotNull MachineEntity machine);
+    void onAddTerminalClick(@NotNull String machineId);
 }

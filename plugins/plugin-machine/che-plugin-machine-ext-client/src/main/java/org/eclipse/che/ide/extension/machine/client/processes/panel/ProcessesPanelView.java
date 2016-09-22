@@ -13,7 +13,6 @@ package org.eclipse.che.ide.extension.machine.client.processes.panel;
 import com.google.gwt.user.client.ui.IsWidget;
 
 import org.eclipse.che.commons.annotation.Nullable;
-import org.eclipse.che.ide.api.machine.MachineEntity;
 import org.eclipse.che.ide.api.mvp.View;
 import org.eclipse.che.ide.api.parts.base.BaseActionDelegate;
 import org.eclipse.che.ide.extension.machine.client.processes.ProcessTreeNode;
@@ -106,10 +105,10 @@ public interface ProcessesPanelView extends View<ProcessesPanelView.ActionDelega
         /**
          * Will be called when user clicks 'Add new terminal' button
          *
-         * @param machine
-         *         machine in which the terminal will be added
+         * @param machineId
+         *         id of machine in which the terminal will be added
          */
-        void onAddTerminal(final MachineEntity machine);
+        void onAddTerminal(String machineId);
 
         /**
          * Will be called when user clicks 'Preview Ssh' button

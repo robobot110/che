@@ -187,6 +187,8 @@ public class WorkspaceServiceLinksInjector {
                                              .toString(),
                                    LINK_REL_STOP_WORKSPACE));
 
+            runtime.getMachines().forEach(machine -> injectMachineLinks(machine, serviceContext));
+
             final MachineDto devMachine = runtime.getDevMachine();
             if (devMachine != null) {
                 final Collection<ServerDto> servers = devMachine.getRuntime()
@@ -231,8 +233,6 @@ public class WorkspaceServiceLinksInjector {
                                                                                   .toString(),
                                                                         TERMINAL_REFERENCE)));
             }
-
-            runtime.getMachines().forEach(machine -> injectMachineLinks(machine, serviceContext));
         }
     }
 

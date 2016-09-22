@@ -116,6 +116,7 @@ public class ProcessTreeRenderer implements NodeRenderer<ProcessTreeNode> {
 
     private SpanElement createMachineElement(final ProcessTreeNode node) {
         final MachineEntity machine = (MachineEntity)node.getData();
+        final String machineId = machine.getId();
         final MachineConfig machineConfig = machine.getConfig();
         final String machineCategory = machineConfig.isDev() ? locale.devMachineCategory() : machineConfig.getType();
 
@@ -156,7 +157,7 @@ public class ProcessTreeRenderer implements NodeRenderer<ProcessTreeNode> {
                 @Override
                 public void handleEvent(Event event) {
                     if (previewSshClickHandler != null) {
-                        previewSshClickHandler.onPreviewSshClick(machine.getId());
+                        previewSshClickHandler.onPreviewSshClick(machineId);
                     }
                 }
             }, true);
@@ -174,7 +175,7 @@ public class ProcessTreeRenderer implements NodeRenderer<ProcessTreeNode> {
                 event.preventDefault();
 
                 if (addTerminalClickHandler != null) {
-                    addTerminalClickHandler.onAddTerminalClick(machine);
+                    addTerminalClickHandler.onAddTerminalClick(machineId);
                 }
             }
         }, true);
@@ -201,7 +202,7 @@ public class ProcessTreeRenderer implements NodeRenderer<ProcessTreeNode> {
         Element monitorsElement = Elements.createSpanElement(resources.getCss().machineMonitors());
         root.appendChild(monitorsElement);
 
-        Node monitorNode = (Node)machineMonitors.getMonitorWidget(machine.getId(), this).getElement();
+        Node monitorNode = (Node)machineMonitors.getMonitorWidget(machineId, this).getElement();
         monitorsElement.appendChild(monitorNode);
 
         Element nameElement = Elements.createSpanElement(resources.getCss().nameLabel());

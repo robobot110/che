@@ -66,8 +66,14 @@ public class ProcessTreeNode {
 
         switch (type) {
             case MACHINE_NODE:
-                id = ((MachineEntity)data).getId();
-                displayName = ((MachineEntity)data).getConfig().getName();
+                if (data instanceof MachineEntity) {
+                    MachineEntity machine = (MachineEntity)data;
+                    id = machine.getId();
+                    displayName = machine.getDisplayName();
+                } else {
+                    throw new IllegalArgumentException("Data type is not a machine setting default value");
+                }
+
                 break;
             case COMMAND_NODE:
                 id = data + UUID.uuid();

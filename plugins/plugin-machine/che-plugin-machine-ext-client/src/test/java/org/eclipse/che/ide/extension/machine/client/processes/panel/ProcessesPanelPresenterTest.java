@@ -302,12 +302,17 @@ public class ProcessesPanelPresenterTest {
 
     @Test
     public void shouldHideStopProcessButtonAtAddingTerminal() throws Exception {
+        MachineDto machineDto = mock(MachineDto.class);
         MachineEntity machine = mock(MachineEntity.class);
         when(machine.getId()).thenReturn(MACHINE_ID);
         MachineConfigDto machineConfigDto = mock(MachineConfigDto.class);
         when(machine.getConfig()).thenReturn(machineConfigDto);
         when(machineConfigDto.isDev()).thenReturn(true);
         when(machine.getStatus()).thenReturn(MachineStatus.RUNNING);
+        List<MachineDto> machines = new ArrayList<>(1);
+        machines.add(machineDto);
+        when(workspaceRuntime.getMachines()).thenReturn(machines);
+        when(entityFactory.createMachine(machineDto)).thenReturn(machine);
 
         ProcessTreeNode machineNode = mock(ProcessTreeNode.class);
         when(machineNode.getId()).thenReturn(MACHINE_ID);
@@ -321,7 +326,7 @@ public class ProcessesPanelPresenterTest {
         when(terminal.getView()).thenReturn(terminalWidget);
 
         presenter.addCommandOutput(MACHINE_ID, outputConsole);
-        presenter.onAddTerminal(machine);
+        presenter.onAddTerminal(MACHINE_ID);
 
         verify(terminalFactory).create(eq(machine));
         verify(terminal).getView();
@@ -370,12 +375,17 @@ public class ProcessesPanelPresenterTest {
 
     @Test
     public void shouldAddTerminal() throws Exception {
+        MachineDto machineDto = mock(MachineDto.class);
         MachineEntity machine = mock(MachineEntity.class);
         when(machine.getId()).thenReturn(MACHINE_ID);
         MachineConfigDto machineConfigDto = mock(MachineConfigDto.class);
         when(machine.getConfig()).thenReturn(machineConfigDto);
         when(machineConfigDto.isDev()).thenReturn(true);
         when(machine.getStatus()).thenReturn(MachineStatus.RUNNING);
+        List<MachineDto> machines = new ArrayList<>(1);
+        machines.add(machineDto);
+        when(workspaceRuntime.getMachines()).thenReturn(machines);
+        when(entityFactory.createMachine(machineDto)).thenReturn(machine);
 
         ProcessTreeNode machineNode = mock(ProcessTreeNode.class);
         when(machineNode.getId()).thenReturn(MACHINE_ID);
@@ -388,7 +398,7 @@ public class ProcessesPanelPresenterTest {
         IsWidget terminalWidget = mock(IsWidget.class);
         when(terminal.getView()).thenReturn(terminalWidget);
 
-        presenter.onAddTerminal(machine);
+        presenter.onAddTerminal(MACHINE_ID);
 
         verify(terminalFactory).create(eq(machine));
         verify(terminal).getView();
