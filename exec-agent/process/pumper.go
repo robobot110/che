@@ -66,9 +66,10 @@ func pump(r io.Reader, lineConsumer acceptLine, wg *sync.WaitGroup) {
 		line, err := br.ReadBytes('\n')
 
 		if err != nil {
-			// handle not normal exit
 			if err != io.EOF {
 				log.Println("Error pumping: " + err.Error())
+			} else if len(line) != 0 {
+				lineConsumer(string(line))
 			}
 			return
 		}

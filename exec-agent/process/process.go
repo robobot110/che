@@ -255,6 +255,10 @@ func (mp *MachineProcess) ReadLogs(from time.Time, till time.Time) ([]*LogMessag
 	return NewLogsReader(mp.logfileName).From(from).Till(till).ReadLogs()
 }
 
+func (mp *MachineProcess) ReadAllLogs() ([]*LogMessage, error) {
+	return mp.ReadLogs(time.Time{}, time.Now())
+}
+
 func (mp *MachineProcess) RemoveSubscriber(id string) {
 	mp.updateLastUsedTime()
 	mp.mutex.Lock()
