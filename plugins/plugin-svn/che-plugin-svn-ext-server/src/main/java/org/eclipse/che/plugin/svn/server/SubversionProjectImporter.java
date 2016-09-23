@@ -11,6 +11,7 @@
 package org.eclipse.che.plugin.svn.server;
 
 import org.eclipse.che.api.core.ConflictException;
+import org.eclipse.che.api.core.ErrorCodes;
 import org.eclipse.che.api.core.ForbiddenException;
 import org.eclipse.che.api.core.ServerException;
 import org.eclipse.che.api.core.UnauthorizedException;
@@ -18,20 +19,18 @@ import org.eclipse.che.api.core.model.project.SourceStorage;
 import org.eclipse.che.api.core.util.LineConsumerFactory;
 import org.eclipse.che.api.project.server.FolderEntry;
 import org.eclipse.che.api.project.server.importer.ProjectImporter;
-import org.eclipse.che.dto.server.DtoFactory;
+
+import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
 import java.io.IOException;
-import java.util.Map;
 
 import org.eclipse.che.plugin.svn.server.credentials.CredentialsException;
 import org.eclipse.che.plugin.svn.server.credentials.CredentialsProvider;
 import org.eclipse.che.plugin.svn.shared.CheckoutRequest;
-import org.eclipse.che.plugin.svn.shared.ImportParameterKeys;
-import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Strings.isNullOrEmpty;
+import static org.eclipse.che.dto.server.DtoFactory.newDto;
 
 /**
  * Implementation of {@link ProjectImporter} for Subversion.
@@ -82,39 +81,39 @@ public class SubversionProjectImporter implements ProjectImporter {
         }
 
         final String location = sourceStorage.getLocation();
-        final Map<String, String> parameters = sourceStorage.getParameters();
 
         String[] credentials = null;
-
-        if (parameters != null) {
-            String paramUsername = parameters.get(ImportParameterKeys.PARAMETER_USERNAME);
-            String paramPassword = parameters.get(ImportParameterKeys.PARAMETER_PASSWORD);
-
-            if (!isNullOrEmpty(paramUsername) && !isNullOrEmpty(paramPassword)) {
-                credentials = new String[] {paramUsername, paramPassword};
-                try {
-                    this.credentialsProvider.storeCredential(location, new CredentialsProvider.Credentials(paramUsername, paramPassword));
-                } catch (final CredentialsException e) {
-                    LoggerFactory.getLogger(SubversionProjectImporter.class.getName())
-                                 .warn("Could not store credentials - try to continue anyway." + e.getMessage());
-                }
+        try {
+            CredentialsProvider.Credentials credentialsProviderCredentials = credentialsProvider.getCredentials(location);
+            if (credentialsProviderCredentials != null) {
+                credentials = new String[]{credentialsProviderCredentials.getUsername(), credentialsProviderCredentials.getPassword()};
             }
+        } catch (CredentialsException e) {
+//            Log.error(SubversionProjectImporter.class, e);
         }
 
-        this.subversionApi.setOutputLineConsumerFactory(lineConsumerFactory);
 
-        // Perform checkout
-        if (credentials != null) {
-            this.subversionApi.checkout(DtoFactory.getInstance()
-                                                  .createDto(CheckoutRequest.class)
-                                                  .withProjectPath(baseFolder.getVirtualFile().toIoFile().getAbsolutePath())
-                                                  .withUrl(location),
-                                        credentials);
-        } else {
-            this.subversionApi.checkout(DtoFactory.getInstance()
-                                                  .createDto(CheckoutRequest.class)
-                                                  .withProjectPath(baseFolder.getVirtualFile().toIoFile().getAbsolutePath())
-                                                  .withUrl(location));
+        try {
+            if (credentials != null) {
+                subversionApi.checkout(newDto(CheckoutRequest.class)
+                                               .withProjectPath(baseFolder.getVirtualFile().toIoFile().getAbsolutePath())
+                                               .withUrl(location),
+                                       credentials);
+            } else {
+                subversionApi.checkout(newDto(CheckoutRequest.class)
+                                               .withProjectPath(baseFolder.getVirtualFile().toIoFile().getAbsolutePath())
+                                               .withUrl(location));
+            }
+        } catch (SubversionException exception) {
+            if (exception.getMessage().contains("Authentication failed")) {
+                throw new UnauthorizedException(exception.getMessage(),
+                                                ErrorCodes.UNAUTHORIZED_GIT_OPERATION,
+                                                ImmutableMap.of("providerName", "svn",
+                                                                "authenticateUrl", location,
+                                                                "authenticated", "false"));
+            } else {
+                throw exception;
+            }
         }
     }
 

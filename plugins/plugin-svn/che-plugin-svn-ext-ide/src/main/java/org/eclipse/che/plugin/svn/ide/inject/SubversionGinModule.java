@@ -10,6 +10,8 @@
  *******************************************************************************/
 package org.eclipse.che.plugin.svn.ide.inject;
 
+import org.eclipse.che.ide.api.oauth.OAuth2Authenticator;
+import org.eclipse.che.plugin.svn.ide.authenticator.SubversionAuthenticatorImpl;
 import org.eclipse.che.plugin.svn.ide.commit.diff.DiffViewerView;
 import org.eclipse.che.plugin.svn.ide.commit.diff.DiffViewerViewImpl;
 import org.eclipse.che.plugin.svn.ide.common.SubversionOutputConsole;
@@ -89,6 +91,8 @@ public class SubversionGinModule extends AbstractGinModule {
 
         install(new GinFactoryModuleBuilder().implement(SubversionOutputConsole.class, SubversionOutputConsolePresenter.class)
                                              .build(SubversionOutputConsoleFactory.class));
+
+        GinMultibinder.newSetBinder(binder(), OAuth2Authenticator.class).addBinding().to(SubversionAuthenticatorImpl.class);
     }
 
 }
