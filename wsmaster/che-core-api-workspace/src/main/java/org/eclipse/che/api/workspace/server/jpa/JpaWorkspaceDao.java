@@ -21,6 +21,7 @@ import org.eclipse.che.api.core.notification.EventService;
 import org.eclipse.che.api.core.notification.EventSubscriber;
 import org.eclipse.che.api.machine.server.model.impl.SnapshotImpl;
 import org.eclipse.che.api.machine.server.spi.SnapshotDao;
+import org.eclipse.che.api.workspace.server.WorkspaceManager;
 import org.eclipse.che.api.workspace.server.event.BeforeWorkspaceRemovedEvent;
 import org.eclipse.che.api.workspace.server.model.impl.WorkspaceImpl;
 import org.eclipse.che.api.workspace.server.spi.WorkspaceDao;
@@ -178,7 +179,7 @@ public class JpaWorkspaceDao implements WorkspaceDao {
         @Inject
         private EventService eventService;
         @Inject
-        private WorkspaceDao workspaceDao;
+        private WorkspaceManager workspaceManager;
 
         @PostConstruct
         public void subscribe() {
@@ -192,12 +193,15 @@ public class JpaWorkspaceDao implements WorkspaceDao {
 
         @Override
         public void onEvent(BeforeAccountRemovedEvent event) {
-            try {
-                for (WorkspaceImpl workspace : workspaceDao.getByNamespace(event.getAccount().getName())) {
-                    workspaceDao.remove(workspace.getId());
+            if (!event.isFailure()) {
+                try {
+                    for (WorkspaceImpl workspace : workspaceManager.getByNamespace(event.getAccount().getName())) {
+                        workspaceManager.removeWorkspace(workspace.getId());
+                    }
+                } catch (Exception x) {
+                    event.setCause(x);
+                    LOG.error(format("Couldn't remove workspaces before account '%s' is removed", event.getAccount().getId()), x);
                 }
-            } catch (Exception x) {
-                LOG.error(format("Couldn't remove workspaces before account '%s' is removed", event.getAccount().getId()), x);
             }
         }
     }
