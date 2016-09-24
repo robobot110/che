@@ -77,7 +77,7 @@ func TestAddSubscriber(t *testing.T) {
 	var received []string
 	go func() {
 		event := <-eventsChan
-		for event.EventType != process.ProcessDiedEventType {
+		for event.EventType != process.DiedEventType {
 			if event.EventType == process.StdoutEventType {
 				out := event.Body.(*process.ProcessOutputEventBody)
 				received = append(received, out.Text)
@@ -158,7 +158,7 @@ func startAndWaitTestProcess(cmd string, t *testing.T) *process.MachineProcess {
 		for {
 			select {
 			case event := <-events:
-				if event.EventType == process.ProcessDiedEventType {
+				if event.EventType == process.DiedEventType {
 					done <- true
 					break
 				}
@@ -175,7 +175,7 @@ func startAndWaitTestProcess(cmd string, t *testing.T) *process.MachineProcess {
 
 	// Wait until process is finished or timeout is reached
 	if ok := <-done; !ok {
-		t.Fatalf("Expected to receive %s process event", process.ProcessDiedEventType)
+		t.Fatalf("Expected to receive %s process event", process.DiedEventType)
 	}
 
 	// Check process state after it is finished

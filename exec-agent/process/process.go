@@ -198,13 +198,7 @@ func (process *MachineProcess) Start() error {
 	// before pumping is started publish process_started event
 	startPublished := make(chan bool)
 	go func() {
-		body := &ProcessStatusEventBody{
-			ProcessEventBody: ProcessEventBody{Pid: process.Pid},
-			NativePid:        process.NativePid,
-			Name:             process.Name,
-			CommandLine:      process.CommandLine,
-		}
-		process.notifySubs(op.NewEventNow(ProcessStartedEventType, body), ProcessStatusBit)
+		process.notifySubs(newStartedEvent(*process), ProcessStatusBit)
 		startPublished <- true
 	}()
 
@@ -316,7 +310,11 @@ func (mp *MachineProcess) RestoreSubscriber(subscriber *Subscriber, after time.T
 	// Publish all the logs between (after, now]
 	for i := 1; i < len(logs); i++ {
 		message := logs[i]
-		subscriber.Channel <- newOutputEvent(mp.Pid, message.Kind, message.Text, message.Time)
+		if message.Kind == StdoutKind {
+			subscriber.Channel <- newStdoutEvent(mp.Pid, message.Text, message.Time)
+		} else {
+			subscriber.Channel <- newStderrEvent(mp.Pid, message.Text, message.Time)
+		}
 	}
 
 	return nil
@@ -339,11 +337,11 @@ func (mp *MachineProcess) UpdateSubscriber(id string, newMask uint64) error {
 }
 
 func (process *MachineProcess) OnStdout(line string, time time.Time) {
-	process.notifySubs(newOutputEvent(process.Pid, StdoutEventType, line, time), StdoutBit)
+	process.notifySubs(newStdoutEvent(process.Pid, line, time), StdoutBit)
 }
 
 func (process *MachineProcess) OnStderr(line string, time time.Time) {
-	process.notifySubs(newOutputEvent(process.Pid, StderrEventType, line, time), StderrBit)
+	process.notifySubs(newStderrEvent(process.Pid, line, time), StderrBit)
 }
 
 func (mp *MachineProcess) Close() {
@@ -356,13 +354,7 @@ func (mp *MachineProcess) Close() {
 	mp.pumper = nil
 	mp.mutex.Unlock()
 
-	body := &ProcessStatusEventBody{
-		ProcessEventBody: ProcessEventBody{Pid: mp.Pid},
-		NativePid:        mp.NativePid,
-		Name:             mp.Name,
-		CommandLine:      mp.CommandLine,
-	}
-	mp.notifySubs(op.NewEventNow(ProcessDiedEventType, body), ProcessStatusBit)
+	mp.notifySubs(newDiedEvent(*mp), ProcessStatusBit)
 
 	mp.mutex.Lock()
 	mp.subs = nil
@@ -403,10 +395,3 @@ func tryWrite(eventsChan chan *op.Event, event *op.Event) (ok bool) {
 	return true
 }
 
-func newOutputEvent(pid uint64, kind string, line string, time time.Time) *op.Event {
-	body := &ProcessOutputEventBody{
-		ProcessEventBody: ProcessEventBody{Pid: pid},
-		Text:             line,
-	}
-	return op.NewEvent(kind, body, time)
-}

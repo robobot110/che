@@ -25,12 +25,6 @@ var (
 	prevChanId uint64 = 0
 )
 
-type notification struct {
-	Version string      `json:"jsonrpc"`
-	Method  string      `json:"method"`
-	Params  interface{} `json:"params"`
-}
-
 func registerChannel(w http.ResponseWriter, r *http.Request) error {
 	if auth.Enabled {
 		if err := auth.AuthenticateOnMaster(r); err != nil {
@@ -65,7 +59,11 @@ func registerChannel(w http.ResponseWriter, r *http.Request) error {
 	go listenForCalls(conn, channel)
 
 	// Say hello to the client
-	eventsChan <- NewEvent(ConnectedEventType, &ChannelConnected{ChannelId: chanId, Text: "Hello!"}, connectedTime)
+	eventsChan <- NewEvent(ConnectedEventType, &ChannelConnected{
+		Timed: Timed{Time: connectedTime},
+		ChannelId: chanId,
+		Text:      "Hello!",
+	})
 	return nil
 }
 
@@ -101,11 +99,7 @@ func listenForCalls(conn *websocket.Conn, channel Channel) {
 
 func redirectEventsToOutput(channel Channel) {
 	for event := range channel.Events {
-		channel.output <- &notification{
-			Version: "2.0",
-			Method:  event.EventType,
-			Params:  event.Body,
-		}
+		channel.output <- event
 	}
 }
 

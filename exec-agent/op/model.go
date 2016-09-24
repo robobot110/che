@@ -93,40 +93,24 @@ type Response struct {
 // after the operation execution is done.
 type Event struct {
 
+	// Version of this notification e.g. '2.0'
+	Version string `json:"jsonrpc"`
+
 	// A type of this operation event, must be always set.
 	// The type must be generally unique.
-	EventType string
+	EventType string `json:"method"`
 
 	// Event related data.
-	Body Periodical
+	Body interface{} `json:"params"`
 }
 
-// Event has to be periodical
-type Periodical interface {
-	SetTime(time time.Time)
+type Timed struct {
+	Time time.Time `json:"time"`
 }
 
-// Holds a value of time.
-type EventBody struct {
-	time time.Time
-}
-
-// Implements Periodical interface.
-func (th *EventBody) SetTime(t time.Time) {
-	th.time = t
-}
-
-func NewEventNow(eType string, body Periodical) *Event {
-	body.SetTime(time.Now())
+func NewEvent(eType string, body interface{}) *Event {
 	return &Event{
-		EventType: eType,
-		Body:      body,
-	}
-}
-
-func NewEvent(eType string, body Periodical, time time.Time) *Event {
-	body.SetTime(time)
-	return &Event{
+		Version: "2.0",
 		EventType: eType,
 		Body:      body,
 	}
