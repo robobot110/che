@@ -48,24 +48,6 @@ var HttpRoutes = rest.RoutesGroup{
 			"/process",
 			getProcessesHF,
 		},
-		{
-			"DELETE",
-			"Unsubscribe from Process Events",
-			"/process/{pid}/events/{channel}",
-			unsubscribeHF,
-		},
-		{
-			"POST",
-			"Subscribe to Process Events",
-			"/process/{pid}/events/{channel}",
-			subscribeHF,
-		},
-		{
-			"PUT",
-			"Update Process Events Subscriber",
-			"/process/{pid}/events/{channel}",
-			updateSubscriberHF,
-		},
 	},
 }
 
@@ -167,7 +149,7 @@ func getProcessLogsHF(w http.ResponseWriter, r *http.Request) error {
 	// limit logs from the latest to the earliest
 	// limit - how many the latest logs will be present
 	// skip - how many log lines should be skipped from the end
-	limit := restutil.IntQueryParam(r, "limit", DefaultLogsLimit)
+	limit := restutil.IntQueryParam(r, "limit", DefaultLogsPerPageLimit)
 	skip := restutil.IntQueryParam(r, "skip", 0)
 	if limit < 1 {
 		return rest.BadRequest(errors.New("Required 'limit' to be > 0"))
@@ -199,95 +181,4 @@ func getProcessesHF(w http.ResponseWriter, r *http.Request) error {
 		all = false
 	}
 	return restutil.WriteJson(w, GetProcesses(all))
-}
-
-func unsubscribeHF(w http.ResponseWriter, r *http.Request) error {
-	vars := mux.Vars(r)
-	pid, err := parsePid(vars["pid"])
-	if err != nil {
-		return rest.BadRequest(err)
-	}
-
-	// Getting process
-	p, ok := Get(pid)
-	if !ok {
-		return rest.NotFound(errors.New(fmt.Sprintf("No process with id '%d'", pid)))
-	}
-
-	channelId := vars["channel"]
-
-	// Getting channel
-	channel, ok := op.GetChannel(channelId)
-	if !ok {
-		return rest.NotFound(errors.New(fmt.Sprintf("Channel with id '%s' doesn't exist", channelId)))
-	}
-
-	p.RemoveSubscriber(channel.Id)
-	return nil
-}
-
-func subscribeHF(w http.ResponseWriter, r *http.Request) error {
-	vars := mux.Vars(r)
-	pid, err := parsePid(vars["pid"])
-	if err != nil {
-		return rest.BadRequest(err)
-	}
-
-	// Getting process
-	p, ok := Get(pid)
-	if !ok {
-		return rest.NotFound(errors.New(fmt.Sprintf("No process with id '%d'", pid)))
-	}
-
-	channelId := vars["channel"]
-
-	// Getting channel
-	channel, ok := op.GetChannel(channelId)
-	if !ok {
-		return rest.NotFound(errors.New(fmt.Sprintf("Channel with id '%s' doesn't exist", channelId)))
-	}
-
-	subscriber := &Subscriber{Mask: parseTypes(r.URL.Query().Get("types")), Channel: channel.Events}
-
-	// Check whether subscriber should see previous process logs
-	afterStr := r.URL.Query().Get("after")
-	if afterStr == "" {
-		return p.AddSubscriber(subscriber)
-	}
-	after, err := time.Parse(DateTimeFormat, afterStr)
-	if err != nil {
-		return rest.BadRequest(errors.New("Bad format of 'after', " + err.Error()))
-	}
-	return p.RestoreSubscriber(subscriber, after)
-
-}
-
-func updateSubscriberHF(w http.ResponseWriter, r *http.Request) error {
-	vars := mux.Vars(r)
-	pid, err := parsePid(vars["pid"])
-	if err != nil {
-		return rest.BadRequest(err)
-	}
-
-	// Getting process
-	p, ok := Get(pid)
-	if !ok {
-		return rest.NotFound(errors.New(fmt.Sprintf("No process with id '%d'", pid)))
-	}
-
-	channelId := vars["channel"]
-
-	// Getting channel
-	channel, ok := op.GetChannel(channelId)
-	if !ok {
-		return rest.NotFound(errors.New(fmt.Sprintf("Channel with id '%s' doesn't exist", channelId)))
-	}
-
-	// Parsing mask from the level e.g. events?types=stdout,stderr
-	types := r.URL.Query().Get("types")
-	if types == "" {
-		return rest.BadRequest(errors.New("'types' parameter required"))
-	}
-	p.UpdateSubscriber(channel.Id, maskFromTypes(types))
-	return nil
 }

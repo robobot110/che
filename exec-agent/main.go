@@ -59,7 +59,7 @@ func main() {
 	for _, routesGroup := range AppOpRoutes {
 		fmt.Printf("%s:\n", routesGroup.Name)
 		for _, route := range routesGroup.Items {
-			fmt.Printf("✓ %s\n", route.Operation)
+			fmt.Printf("✓ %s\n", route.Method)
 			op.RegisterRoute(route)
 		}
 	}

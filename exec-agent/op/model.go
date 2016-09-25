@@ -54,6 +54,8 @@ const (
 
 	// When error returned from the Route HandlerFunc is different from Error type
 	InternalErrorCode = -32603
+
+	// -32000 to -32099 Reserved for implementation-defined server-errors.
 )
 
 // Describes named operation which is called
@@ -141,7 +143,7 @@ type Timed struct {
 
 func NewEvent(eType string, body interface{}) *Event {
 	return &Event{
-		Version: "2.0",
+		Version:   "2.0",
 		EventType: eType,
 		Body:      body,
 	}

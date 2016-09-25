@@ -13,8 +13,8 @@ var (
 // Describes route for api calls
 type Route struct {
 
-	// The operation name like defined by Call.Operation
-	Operation string
+	// The operation name like defined by Request.Method
+	Method string
 
 	// The decoder used for decoding a given object
 	// into the certain body, by the call of this operation route.
@@ -63,11 +63,11 @@ func (routes *routesMap) get(operation string) (Route, bool) {
 func (or *routesMap) add(r Route) bool {
 	routes.Lock()
 	defer routes.Unlock()
-	_, ok := routes.items[r.Operation]
+	_, ok := routes.items[r.Method]
 	if ok {
 		return false
 	}
-	routes.items[r.Operation] = r
+	routes.items[r.Method] = r
 	return true
 }
 
@@ -75,6 +75,6 @@ func (or *routesMap) add(r Route) bool {
 // This is designed to be used on the app bootstrap
 func RegisterRoute(route Route) {
 	if !routes.add(route) {
-		log.Fatalf("Couldn't register a new route, route for the operation '%s' already exists", route.Operation)
+		log.Fatalf("Couldn't register a new route, route for the operation '%s' already exists", route.Method)
 	}
 }

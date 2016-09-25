@@ -2,15 +2,15 @@
 package auth
 
 import (
-	"net/http"
-	"os"
+	"errors"
 	"flag"
 	"github.com/eclipse/che/exec-agent/rest"
-	"errors"
+	"net/http"
+	"os"
 )
 
 var (
-	Enabled = false
+	Enabled     = false
 	apiEndpoint = os.Getenv("CHE_API_ENDPOINT")
 )
 
@@ -23,7 +23,7 @@ func AuthenticateOnMaster(r *http.Request) error {
 	if tokenParam == "" {
 		return rest.Unauthorized(errors.New("Authentication failed: missing 'token' query parameter"))
 	}
-	req, err := http.NewRequest("GET", apiEndpoint + "/machine/token/user/" + tokenParam, nil)
+	req, err := http.NewRequest("GET", apiEndpoint+"/machine/token/user/"+tokenParam, nil)
 	if err != nil {
 		return rest.Unauthorized(err)
 	}

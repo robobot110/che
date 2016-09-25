@@ -266,7 +266,7 @@ func getProcessLogsCallHF(body interface{}, t *op.Transmitter) error {
 		return err
 	}
 
-	limit := DefaultLogsLimit
+	limit := DefaultLogsPerPageLimit
 	if args.Limit != 0 {
 		if limit < 1 {
 			return op.NewArgsError(errors.New("Required 'limit' to be > 0"))
