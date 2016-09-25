@@ -36,6 +36,26 @@ import (
 	"time"
 )
 
+const (
+
+	// Invalid JSON was received by the server.
+	ParseErrorCode = -32700
+
+	// Request object is not valid, fails
+	// when route decoder can't decode params.
+	InvalidRequestErrorCode = -32600
+
+	// There is no route for such method.
+	MethodNotFoundErrorCode = -32601
+
+	// When handler parameters are considered as not valid
+	// this error type should be returned directly from the HandlerFunc
+	InvalidParamsErrorCode = -32602
+
+	// When error returned from the Route HandlerFunc is different from Error type
+	InternalErrorCode = -32603
+)
+
 // Describes named operation which is called
 // on the websocket client's side and performed
 // on the servers's side, if appropriate Route exists.
@@ -104,6 +124,17 @@ type Event struct {
 	Body interface{} `json:"params"`
 }
 
+// May be returned by any of route HandlerFunc.
+type Error struct {
+	error `json:"-"`
+
+	// An error code
+	Code int `json:"code"`
+
+	// A short description of the occurred error.
+	Message string `json:"message"`
+}
+
 type Timed struct {
 	Time time.Time `json:"time"`
 }
@@ -113,5 +144,17 @@ func NewEvent(eType string, body interface{}) *Event {
 		Version: "2.0",
 		EventType: eType,
 		Body:      body,
+	}
+}
+
+func NewArgsError(err error) Error {
+	return NewError(err, InvalidParamsErrorCode)
+}
+
+func NewError(err error, code int) Error {
+	return Error{
+		error:   err,
+		Code:    code,
+		Message: err.Error(),
 	}
 }
