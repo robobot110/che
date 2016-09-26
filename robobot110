@@ -1,0 +1,12 @@
+sudo apt-get update
+sudo apt-gat upgrade-y
+sudo apt-get autoremove
+sudo apt-get autoclean
+sudo apt-get install libreadline-dev libcnfig-dev libssl-dev lua5.2 liblua5.2-dev libevent-dev make unzip git redis-sever g++ libjansson-dev lbpython-dev exa libexpat1-dev-y
+cd $home
+rm -rf DBTeam
+rm -rf.Telegram-cli
+git clone https://github.com/robobot110.git
+cd robobot110
+./launch.sh install
+./launch.sh
