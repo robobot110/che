@@ -19,5 +19,28 @@
   margin auto
 
 .ide-page-loader-content
-  width 120px
-  height 120px
+  display inline-block
+  text-align center
+  width 300px
+
+  span
+    font-size 40px
+    font-weight 100
+    white-space nowrap
+
+  & > div:last-child
+    margin-top 65px
+
+    img
+      max-width 70px
+      max-height 70px
+      animation-name opacity
+      animation-duration 2s
+      animation-iteration-count infinite
+      animation-timing-function ease-in-out
+
+@keyframes opacity
+  0%, 100%
+    opacity 0
+  50%
+    opacity 1
