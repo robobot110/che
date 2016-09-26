@@ -17,7 +17,7 @@ const (
 	ProcessUpdateSubscriberOp = "process.updateSubscriber"
 	ProcessGetLogsOp          = "process.getLogs"
 
-	NoSuchProcessErrorCode = 20000
+	NoSuchProcessErrorCode = -32000
 )
 
 var OpRoutes = op.RoutesGroup{
@@ -26,7 +26,7 @@ var OpRoutes = op.RoutesGroup{
 		{
 			ProcessStartOp,
 			func(body []byte) (interface{}, error) {
-				b := startBody{}
+				b := StartParams{}
 				err := json.Unmarshal(body, &b)
 				return b, err
 			},
@@ -35,7 +35,7 @@ var OpRoutes = op.RoutesGroup{
 		{
 			ProcessKillOp,
 			func(body []byte) (interface{}, error) {
-				b := killBody{}
+				b := KillParams{}
 				err := json.Unmarshal(body, &b)
 				return b, err
 			},
@@ -44,7 +44,7 @@ var OpRoutes = op.RoutesGroup{
 		{
 			ProcessSubscribeOp,
 			func(body []byte) (interface{}, error) {
-				b := subscribeBody{}
+				b := SubscribeParams{}
 				err := json.Unmarshal(body, &b)
 				return b, err
 			},
@@ -53,7 +53,7 @@ var OpRoutes = op.RoutesGroup{
 		{
 			ProcessUnsubscribeOp,
 			func(body []byte) (interface{}, error) {
-				b := unsubscribeBody{}
+				b := UnsubscribeParams{}
 				err := json.Unmarshal(body, &b)
 				return b, err
 			},
@@ -62,7 +62,7 @@ var OpRoutes = op.RoutesGroup{
 		{
 			ProcessUpdateSubscriberOp,
 			func(body []byte) (interface{}, error) {
-				b := updateSubscriberBody{}
+				b := UpdateSubscriberParams{}
 				err := json.Unmarshal(body, &b)
 				return b, err
 			},
@@ -71,7 +71,7 @@ var OpRoutes = op.RoutesGroup{
 		{
 			ProcessGetLogsOp,
 			func(body []byte) (interface{}, error) {
-				b := getLogsBody{}
+				b := GetLogsParams{}
 				err := json.Unmarshal(body, &b)
 				return b, err
 			},
@@ -80,45 +80,45 @@ var OpRoutes = op.RoutesGroup{
 	},
 }
 
-type startBody struct {
+type StartParams struct {
 	Name        string `json:"name"`
 	CommandLine string `json:"commandLine"`
 	Type        string `json:"type"`
 	EventTypes  string `json:"eventTypes"`
 }
 
-type killBody struct {
+type KillParams struct {
 	Pid       uint64 `json:"pid"`
 	NativePid uint64 `json:"nativePid"`
 }
 
-type subscribeBody struct {
+type SubscribeParams struct {
 	Pid        uint64 `json:"pid"`
 	EventTypes string `json:"eventTypes"`
 	After      string `json:"after"`
 }
 
-type subscribeResult struct {
+type SubscribeResult struct {
 	Pid        uint64 `json:"pid"`
 	EventTypes string `json:"eventTypes"`
 	Text       string `json:"text"`
 }
 
-type unsubscribeBody struct {
+type UnsubscribeParams struct {
 	Pid uint64 `json:"pid"`
 }
 
-type updateSubscriberBody struct {
+type UpdateSubscriberParams struct {
 	Pid        uint64 `json:"pid"`
 	EventTypes string `json:"eventTypes"`
 }
 
-type processOpResult struct {
+type ProcessResult struct {
 	Pid  uint64 `json:"pid"`
 	Text string `json:"text"`
 }
 
-type getLogsBody struct {
+type GetLogsParams struct {
 	Pid   uint64 `json:"pid"`
 	From  string `json:"from"`
 	Till  string `json:"till"`
@@ -127,7 +127,7 @@ type getLogsBody struct {
 }
 
 func startProcessCallHF(body interface{}, t *op.Transmitter) error {
-	startBody := body.(startBody)
+	startBody := body.(StartParams)
 
 	// Creating command
 	command := Command{
@@ -159,7 +159,7 @@ func startProcessCallHF(body interface{}, t *op.Transmitter) error {
 }
 
 func killProcessCallHF(body interface{}, t *op.Transmitter) error {
-	killBody := body.(killBody)
+	killBody := body.(KillParams)
 	p, ok := Get(killBody.Pid)
 	if !ok {
 		return newNoSuchProcessError(killBody.Pid)
@@ -167,7 +167,7 @@ func killProcessCallHF(body interface{}, t *op.Transmitter) error {
 	if err := p.Kill(); err != nil {
 		return err
 	}
-	t.Send(&processOpResult{
+	t.Send(&ProcessResult{
 		Pid:  killBody.Pid,
 		Text: "Successfully killed",
 	})
@@ -175,7 +175,7 @@ func killProcessCallHF(body interface{}, t *op.Transmitter) error {
 }
 
 func subscribeCallHF(body interface{}, t *op.Transmitter) error {
-	subscribeBody := body.(subscribeBody)
+	subscribeBody := body.(SubscribeParams)
 	p, ok := Get(subscribeBody.Pid)
 	if !ok {
 		return newNoSuchProcessError(subscribeBody.Pid)
@@ -201,7 +201,7 @@ func subscribeCallHF(body interface{}, t *op.Transmitter) error {
 			return err
 		}
 	}
-	t.Send(&subscribeResult{
+	t.Send(&SubscribeResult{
 		Pid:        p.Pid,
 		EventTypes: subscribeBody.EventTypes,
 		Text:       "Successfully subscribed",
@@ -210,13 +210,13 @@ func subscribeCallHF(body interface{}, t *op.Transmitter) error {
 }
 
 func unsubscribeCallHF(call interface{}, t *op.Transmitter) error {
-	unsubscribeBody := call.(unsubscribeBody)
+	unsubscribeBody := call.(UnsubscribeParams)
 	p, ok := Get(unsubscribeBody.Pid)
 	if !ok {
 		return errors.New(fmt.Sprintf("Process with id '%s' doesn't exist", unsubscribeBody.Pid))
 	}
 	p.RemoveSubscriber(t.Channel.Id)
-	t.Send(&processOpResult{
+	t.Send(&ProcessResult{
 		Pid:  p.Pid,
 		Text: "Successfully unsubscribed",
 	})
@@ -224,7 +224,7 @@ func unsubscribeCallHF(call interface{}, t *op.Transmitter) error {
 }
 
 func updateSubscriberCallHF(body interface{}, t *op.Transmitter) error {
-	updateBody := body.(updateSubscriberBody)
+	updateBody := body.(UpdateSubscriberParams)
 	p, ok := Get(updateBody.Pid)
 	if !ok {
 		return newNoSuchProcessError(updateBody.Pid)
@@ -236,7 +236,7 @@ func updateSubscriberCallHF(body interface{}, t *op.Transmitter) error {
 	if err := p.UpdateSubscriber(t.Channel.Id, maskFromTypes(updateBody.EventTypes)); err != nil {
 		return err
 	}
-	t.Send(&subscribeResult{
+	t.Send(&SubscribeResult{
 		Pid:        p.Pid,
 		EventTypes: updateBody.EventTypes,
 		Text:       "Subscriber successfully updated",
@@ -245,7 +245,7 @@ func updateSubscriberCallHF(body interface{}, t *op.Transmitter) error {
 }
 
 func getProcessLogsCallHF(body interface{}, t *op.Transmitter) error {
-	args := body.(getLogsBody)
+	args := body.(GetLogsParams)
 	p, ok := Get(args.Pid)
 	if !ok {
 		return newNoSuchProcessError(args.Pid)
